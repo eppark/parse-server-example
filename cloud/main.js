@@ -176,100 +176,111 @@ Parse.Cloud.job("matchJob", async (request, response) => {
 Parse.Cloud.define("findMatchForUser", async (request) => {
     // FIND MATCHES
 
-    // Query all users except the current one
-    getUsersExcept(request.params.currentuser).then(
-        function (users) {
-            console.log("USER SEARCH OK");
+    // If we already have matches, we don't need to run this again
+    var Match = Parse.Object.extend("Match");
 
-            // Go through each of the users
-            var FavSongs = Parse.Object.extend("FavSongs");
+    var matchquery = new Parse.Query(Match);
+    matchquery.equalTo("objectId", request.params.currentuser);
+    matchquery.find().then((matches) => {
+        if (matches.length > 0) {
+            return true;
+        }
 
-            // Get the first user's favorite songs
-            getUser(request.params.currentuser).then(function (currentUserObj) {
-                    var query1 = new Parse.Query(FavSongs);
-                    query1.equalTo("user", currentUserObj);
-                    query1.include("song");
-                    query1.find().then((results1) => {
-                        console.log("FOUND FIRST USER'S SONGS");
+        // Query all users except the current one
+        getUsersExcept(request.params.currentuser).then(
+            function (users) {
+                console.log("USER SEARCH OK");
 
-                        for (let j = 0; j < users.length; j++) {
-                            // Get the second user's favorite songs
-                            var query2 = new Parse.Query(FavSongs);
-                            query2.equalTo("user", users[j]);
-                            query2.include("song");
-                            query2.find().then((results2) => {
-                                console.log("FOUND SECOND USER'S SONGS");
-                                // Now calculate the score
-                                console.log("STARTING CALCULATIONS...")
-                                let score = 0.0;
+                // Go through each of the users
+                var FavSongs = Parse.Object.extend("FavSongs");
 
-                                for (let x = 0; x < results1.length; x++) {
-                                    let check = false;
-                                    for (let y = 0; y < results2.length; y++) {
-                                        if (results1[x].get("song").get("spotifyId") === results2[y].get("song").get("spotifyId")) {
-                                            // Check if the exact song matches
-                                            score += 1.0;
-                                            check = true;
-                                            break;
-                                        }
-                                    }
-                                    // If there are no exact song matches, we go through artists next
-                                    if (check == false) {
+                // Get the first user's favorite songs
+                getUser(request.params.currentuser).then(function (currentUserObj) {
+                        var query1 = new Parse.Query(FavSongs);
+                        query1.equalTo("user", currentUserObj);
+                        query1.include("song");
+                        query1.find().then((results1) => {
+                            console.log("FOUND FIRST USER'S SONGS");
+
+                            for (let j = 0; j < users.length; j++) {
+                                // Get the second user's favorite songs
+                                var query2 = new Parse.Query(FavSongs);
+                                query2.equalTo("user", users[j]);
+                                query2.include("song");
+                                query2.find().then((results2) => {
+                                    console.log("FOUND SECOND USER'S SONGS");
+                                    // Now calculate the score
+                                    console.log("STARTING CALCULATIONS...")
+                                    let score = 0.0;
+
+                                    for (let x = 0; x < results1.length; x++) {
+                                        let check = false;
                                         for (let y = 0; y < results2.length; y++) {
-                                            if (results1[x].get("song").get("artists").some(r => results2[y].get("song").get("artists").indexOf(r) >= 0)) {
-                                                // Check if any of the artists matches
-                                                score += 0.5;
+                                            if (results1[x].get("song").get("spotifyId") === results2[y].get("song").get("spotifyId")) {
+                                                // Check if the exact song matches
+                                                score += 1.0;
+                                                check = true;
                                                 break;
                                             }
                                         }
+                                        // If there are no exact song matches, we go through artists next
+                                        if (check == false) {
+                                            for (let y = 0; y < results2.length; y++) {
+                                                if (results1[x].get("song").get("artists").some(r => results2[y].get("song").get("artists").indexOf(r) >= 0)) {
+                                                    // Check if any of the artists matches
+                                                    score += 0.5;
+                                                    break;
+                                                }
+                                            }
+                                        }
                                     }
-                                }
-                                // Total count is the lower of the two fav song lengths
-                                let totalCount = Math.min(results1.length, results2.length);
-                                let percent = score * 1.0 / totalCount;
-                                console.log("FINISHED CALCULATING SCORE " + score + " FOR PERCENT " + percent);
+                                    // Total count is the lower of the two fav song lengths
+                                    let totalCount = Math.min(results1.length, results2.length);
+                                    let percent = score * 1.0 / totalCount;
+                                    console.log("FINISHED CALCULATING SCORE " + score + " FOR PERCENT " + percent);
 
-                                // Now we can make a new Match
-                                var Match = Parse.Object.extend("Match");
-                                var matchObject1 = new Match();
-                                matchObject1.save({
-                                        to: currentUserObj,
-                                        from: users[j],
-                                        percent: percent
-                                    })
-                                    .then((match1database) => {
-                                        console.log("CREATED MATCH TO");
+                                    // Now we can make a new Match
+                                    var Match = Parse.Object.extend("Match");
+                                    var matchObject1 = new Match();
+                                    matchObject1.save({
+                                            to: currentUserObj,
+                                            from: users[j],
+                                            percent: percent
+                                        })
+                                        .then((match1database) => {
+                                            console.log("CREATED MATCH TO");
 
-                                        var matchObject2 = new Match();
-                                        matchObject2.save({
-                                                to: users[j],
-                                                from: currentUserObj,
-                                                percent: percent
-                                            })
-                                            .then((match2database) => {
-                                                console.log("CREATED MATCH FROM");
-                                            }, (error) => {
-                                                console.log("ERROR" + error.message);
+                                            var matchObject2 = new Match();
+                                            matchObject2.save({
+                                                    to: users[j],
+                                                    from: currentUserObj,
+                                                    percent: percent
+                                                })
+                                                .then((match2database) => {
+                                                    console.log("CREATED MATCH FROM");
+                                                }, (error) => {
+                                                    console.log("ERROR" + error.message);
 
-                                            });
-                                    }, (error) => {
-                                        console.log("ERROR" + error.message);
+                                                });
+                                        }, (error) => {
+                                            console.log("ERROR" + error.message);
 
-                                    });
-                                console.log("CREATED MATCH");
-                            });
-                        }
+                                        });
+                                    console.log("CREATED MATCH");
+                                });
+                            }
+                        });
+
+                    },
+                    function (error) {
+                        response.error(error);
                     });
-
-                },
-                function (error) {
-                    response.error(error);
-                });
-        },
-        function (error) {
-            response.error(error);
-        }
-    );
+            },
+            function (error) {
+                response.error(error);
+            }
+        );
+    });
     return true;
 });
 
@@ -425,116 +436,127 @@ Parse.Cloud.job("match2Job", async (request, response) => {
 Parse.Cloud.define("findMatch2ForUser", async (request) => {
     // FIND MATCHES
 
-    // Query all users except the current one
-    getUsersExcept(request.params.currentuser).then(
-        function (users) {
-            console.log("USER SEARCH OK");
+    // If we already have matches, we don't need to run this function again
+    var Match2 = Parse.Object.extend("Match2");
 
-            // Go through each of the users
-            var FavSongs = Parse.Object.extend("FavSongs");
+    var matchquery = new Parse.Query(Match2);
+    matchquery.equalTo("objectId", request.params.currentuser);
+    matchquery.find().then((matches) => {
+        if (matches.length > 0) {
+            return true;
+        }
 
-            // Get the first user's favorite songs
-            getUser(request.params.currentuser).then(function (currentUserObj) {
-                    var query1 = new Parse.Query(FavSongs);
-                    query1.equalTo("user", currentUserObj);
-                    query1.include("song");
-                    query1.find().then((results1) => {
-                        console.log("FOUND FIRST USER'S SONGS");
+        // Query all users except the current one
+        getUsersExcept(request.params.currentuser).then(
+            function (users) {
+                console.log("USER SEARCH OK");
 
-                        for (let j = 0; j < users.length; j++) {
-                            // Get the second user's favorite songs
-                            var query2 = new Parse.Query(FavSongs);
-                            query2.equalTo("user", users[j]);
-                            query2.include("song");
-                            query2.find().then((results2) => {
-                                console.log("FOUND SECOND USER'S SONGS");
-                                // Now calculate the score
-                                console.log("STARTING CALCULATIONS...")
-                                let score = 0.0;
+                // Go through each of the users
+                var FavSongs = Parse.Object.extend("FavSongs");
 
-                                for (let x = 0; x < results1.length; x++) {
-                                    let check = false;
-                                    for (let y = 0; y < results2.length; y++) {
-                                        if (results1[x].get("song").get("spotifyId") === results2[y].get("song").get("spotifyId")) {
-                                            // Check if the exact song matches
-                                            score += 9.0;
-                                            check = true;
-                                            break;
-                                        }
-                                    }
-                                    // If there are no exact song matches, we go through audio features next
-                                    if (check == false) {
-                                        let highest = 0.0;
+                // Get the first user's favorite songs
+                getUser(request.params.currentuser).then(function (currentUserObj) {
+                        var query1 = new Parse.Query(FavSongs);
+                        query1.equalTo("user", currentUserObj);
+                        query1.include("song");
+                        query1.find().then((results1) => {
+                            console.log("FOUND FIRST USER'S SONGS");
+
+                            for (let j = 0; j < users.length; j++) {
+                                // Get the second user's favorite songs
+                                var query2 = new Parse.Query(FavSongs);
+                                query2.equalTo("user", users[j]);
+                                query2.include("song");
+                                query2.find().then((results2) => {
+                                    console.log("FOUND SECOND USER'S SONGS");
+                                    // Now calculate the score
+                                    console.log("STARTING CALCULATIONS...")
+                                    let score = 0.0;
+
+                                    for (let x = 0; x < results1.length; x++) {
+                                        let check = false;
                                         for (let y = 0; y < results2.length; y++) {
-                                            let temp = 0.0;
-                                            // Compare each audio feature
-                                            for (let z = 0; z < 9; z++) {
-                                                let feature1 = results1[x].get("song").get("audioFeatures")[z];
-                                                let feature2 = results2[x].get("song").get("audioFeatures")[z];
-                                                let check = Math.abs(feature1 - feature2);
+                                            if (results1[x].get("song").get("spotifyId") === results2[y].get("song").get("spotifyId")) {
+                                                // Check if the exact song matches
+                                                score += 9.0;
+                                                check = true;
+                                                break;
+                                            }
+                                        }
+                                        // If there are no exact song matches, we go through audio features next
+                                        if (check == false) {
+                                            let highest = 0.0;
+                                            for (let y = 0; y < results2.length; y++) {
+                                                let temp = 0.0;
+                                                // Compare each audio feature
+                                                for (let z = 0; z < 9; z++) {
+                                                    let feature1 = results1[x].get("song").get("audioFeatures")[z];
+                                                    let feature2 = results2[x].get("song").get("audioFeatures")[z];
+                                                    let check = Math.abs(feature1 - feature2);
 
-                                                // If they're exact, add 1; otherwise, adjust accordingly
-                                                if (check == 0.0) {
-                                                    temp += 1.0;
-                                                } else if (check <= 0.1) {
-                                                    temp += 0.7;
-                                                } else if (check <= 0.3) {
-                                                    temp += 0.4;
+                                                    // If they're exact, add 1; otherwise, adjust accordingly
+                                                    if (check == 0.0) {
+                                                        temp += 1.0;
+                                                    } else if (check <= 0.1) {
+                                                        temp += 0.7;
+                                                    } else if (check <= 0.3) {
+                                                        temp += 0.4;
+                                                    }
+                                                }
+                                                // We only want the highest matching audio feature (ie. don't want to compare every single song)
+                                                if (temp > highest) {
+                                                    highest = temp;
                                                 }
                                             }
-                                            // We only want the highest matching audio feature (ie. don't want to compare every single song)
-                                            if (temp > highest) {
-                                                highest = temp;
-                                            }
+                                            score += highest;
                                         }
-                                        score += highest;
                                     }
-                                }
-                                // Total count is the lower of the two fav song lengths times the total possible score for exact matches
-                                let totalCount = Math.min(results1.length, results2.length) * 9.0;
-                                let percent = score * 1.0 / totalCount;
-                                console.log("FINISHED CALCULATING SCORE " + score + " FOR PERCENT " + percent);
+                                    // Total count is the lower of the two fav song lengths times the total possible score for exact matches
+                                    let totalCount = Math.min(results1.length, results2.length) * 9.0;
+                                    let percent = score * 1.0 / totalCount;
+                                    console.log("FINISHED CALCULATING SCORE " + score + " FOR PERCENT " + percent);
 
-                                // Now we can make a new Match2
-                                var Match2 = Parse.Object.extend("Match2");
-                                var matchObject1 = new Match2();
-                                matchObject1.save({
-                                        to: currentUserObj,
-                                        from: users[j],
-                                        percent: percent
-                                    })
-                                    .then((match1database) => {
-                                        console.log("CREATED MATCH2 TO");
+                                    // Now we can make a new Match2
+                                    var Match2 = Parse.Object.extend("Match2");
+                                    var matchObject1 = new Match2();
+                                    matchObject1.save({
+                                            to: currentUserObj,
+                                            from: users[j],
+                                            percent: percent
+                                        })
+                                        .then((match1database) => {
+                                            console.log("CREATED MATCH2 TO");
 
-                                        var matchObject2 = new Match2();
-                                        matchObject2.save({
-                                                to: users[j],
-                                                from: currentUserObj,
-                                                percent: percent
-                                            })
-                                            .then((match2database) => {
-                                                console.log("CREATED MATCH2 FROM");
-                                            }, (error) => {
-                                                console.log("ERROR" + error.message);
+                                            var matchObject2 = new Match2();
+                                            matchObject2.save({
+                                                    to: users[j],
+                                                    from: currentUserObj,
+                                                    percent: percent
+                                                })
+                                                .then((match2database) => {
+                                                    console.log("CREATED MATCH2 FROM");
+                                                }, (error) => {
+                                                    console.log("ERROR" + error.message);
 
-                                            });
-                                    }, (error) => {
-                                        console.log("ERROR" + error.message);
+                                                });
+                                        }, (error) => {
+                                            console.log("ERROR" + error.message);
 
-                                    });
-                                console.log("CREATED MATCH2");
-                            });
-                        }
+                                        });
+                                    console.log("CREATED MATCH2");
+                                });
+                            }
+                        });
+
+                    },
+                    function (error) {
+                        response.error(error);
                     });
-
-                },
-                function (error) {
-                    response.error(error);
-                });
-        },
-        function (error) {
-            response.error(error);
-        }
-    );
+            },
+            function (error) {
+                response.error(error);
+            }
+        );
+    });
     return true;
 });
