@@ -14,8 +14,10 @@ if (!databaseUri) {
 
 var pushConfig = {};
 
-if (process.env.FCM_API_KEY) {
-    pushConfig['android'] = { apiKey: process.env.FCM_API_KEY || ''};
+if (process.env.FCM_API_KEY && process.env.FCM_SENDER_ID) {
+    pushConfig['android'] = { 
+      senderId: process.env.FCM_SENDER_ID,
+      apiKey: process.env.FCM_API_KEY || ''};
 }
 
 if (process.env.APNS_ENABLE) {
