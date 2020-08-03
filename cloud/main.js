@@ -567,7 +567,6 @@ Parse.Cloud.define('pushMessage', async (request) => {
     // use to custom tweak whatever payload you wish to send
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("deviceType", "android");
-    pushQuery.equalTo("channels", request.params.username);
 
     var data = {
         "title": request.params.title,
@@ -603,7 +602,6 @@ Parse.Cloud.job("pushNotifications", async (request, response) => {
     // use to custom tweak whatever payload you wish to send
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("deviceType", "android");
-    pushQuery.equalTo("channels", "default");
 
     var data = {
         "title": "Pitchr",
