@@ -570,24 +570,24 @@ Parse.Cloud.define('pushMessage', async (request) => {
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("deviceType", "android");
 
-    console.log("PLEASE!");
+    console.log("1");
     // Get the title and message
     var data = {
         "title": request.params.title,
         "alert": request.params.message
     };
 
-    console.log("WHY NOT!");
+    console.log("2");
     // Note that useMasterKey is necessary for Push notifications to succeed
     return Parse.Push.send({
         where: pushQuery,
         data: data
     }, {
         success: function () {
-            console.log("#### PUSH OK");
+            console.log("PUSH OK");
         },
         error: function (error) {
-            console.log("#### PUSH ERROR" + error.message);
+            console.log("PUSH ERROR" + error.message);
         },
         useMasterKey: true
     });
@@ -606,14 +606,14 @@ Parse.Cloud.job("pushNotifications", async (request, response) => {
     // Send to Android devices
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("deviceType", "android");
-    console.log("PLEASE!");
+    console.log("1!");
     
     // Set title and message
     var data = {
         "title": "Pitchr",
         "alert": "Check out your matches on Pitchr!"
     };
-    console.log("WHY NOT!");
+    console.log("2!");
 
     // Note that useMasterKey is necessary for Push notifications to succeed.
     return Parse.Push.send({
@@ -621,10 +621,10 @@ Parse.Cloud.job("pushNotifications", async (request, response) => {
         data: data
     }, {
         success: function () {
-            console.log("#### PUSH OK");
+            console.log("PUSH OK");
         },
         error: function (error) {
-            console.log("#### PUSH ERROR" + error.message);
+            console.log("PUSH ERROR" + error.message);
         },
         useMasterKey: true
     });
