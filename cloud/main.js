@@ -578,7 +578,7 @@ Parse.Cloud.define('pushMessage', async (request) => {
     };
 
     // Note that useMasterKey is necessary for Push notifications to succeed.
-    Parse.Push.send({
+    return Parse.Push.send({
         where: pushQuery,
         data: data
     }, {
@@ -614,7 +614,7 @@ Parse.Cloud.job("pushNotifications", async (request, response) => {
     };
 
     // Note that useMasterKey is necessary for Push notifications to succeed.
-    Parse.Push.send({
+    return Parse.Push.send({
         where: pushQuery,
         data: data
     }, {
@@ -626,5 +626,4 @@ Parse.Cloud.job("pushNotifications", async (request, response) => {
         },
         useMasterKey: true
     });
-    return ("Successfully sent notifications.");
 });
