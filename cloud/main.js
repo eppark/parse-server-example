@@ -564,17 +564,14 @@ Parse.Cloud.define("findMatch2ForUser", async (request) => {
 
 //PUSH NOTIFICATIONS
 Parse.Cloud.define('pushMessage', async (request) => {
-    // request has 2 parameters: params passed by the client and the authorized user
-    var params = request.params;
-
     // use to custom tweak whatever payload you wish to send
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("deviceType", "android");
-    pushQuery.equalTo("channels", "default");
+    pushQuery.equalTo("channels", request.params.username);
 
     var data = {
-        "title": params.title,
-        "alert": params.message
+        "title": request.params.title,
+        "alert": request.params.message
     };
 
     // Note that useMasterKey is necessary for Push notifications to succeed.
