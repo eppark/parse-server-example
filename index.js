@@ -12,24 +12,6 @@ if (!databaseUri) {
   console.log('DATABASE_URI not specified, falling back to localhost.');
 }
 
-var pushConfig = {};
-
-if (process.env.FCM_API_KEY && process.env.FCM_SENDER_ID) {
-    pushConfig['android'] = { 
-      senderId: process.env.FCM_SENDER_ID,
-      apiKey: process.env.FCM_API_KEY || ''};
-}
-
-if (process.env.APNS_ENABLE) {
-    pushConfig['ios'] = [
-        {
-            pfx: 'ParsePushDevelopmentCertificate.p12', // P12 file only
-            bundleId: 'beta.codepath.parsetesting',  // change to match bundleId
-            production: false // dev certificate
-        }
-    ]
-}
-
 var filesAdapter = null;  // enable Gridstore to be the default
 if (process.env.S3_ENABLE) {
     var S3Adapter = require('parse-server').S3Adapter;
@@ -46,7 +28,12 @@ var api = new ParseServer({
   cloud: process.env.CLOUD_CODE_MAIN || __dirname + '/cloud/main.js',
   appId: process.env.APP_ID || 'myAppId',
   masterKey: process.env.MASTER_KEY || '', //Add your master key here. Keep it secret!
-  push: pushConfig,
+  push: {
+    android: {
+      senderId: process.env.FCM_SENDER_ID,
+      apiKey: process.env.FCM_API_KEY
+    }
+  },
   filesAdapter: filesAdapter,
   liveQuery: { classNames: ["Message"]},
   publicServerURL: process.env.SERVER_URL || 'http://localhost/parse',
