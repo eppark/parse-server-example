@@ -564,16 +564,21 @@ Parse.Cloud.define("findMatch2ForUser", async (request) => {
 
 //PUSH NOTIFICATIONS
 Parse.Cloud.define('pushMessage', async (request) => {
-    // use to custom tweak whatever payload you wish to send
+    console.log("NOTIFICATIONS START");
+
+    // Send to Android devices
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("deviceType", "android");
 
+    console.log("PLEASE!");
+    // Get the title and message
     var data = {
         "title": request.params.title,
         "alert": request.params.message
     };
 
-    // Note that useMasterKey is necessary for Push notifications to succeed.
+    console.log("WHY NOT!");
+    // Note that useMasterKey is necessary for Push notifications to succeed
     return Parse.Push.send({
         where: pushQuery,
         data: data
@@ -597,16 +602,18 @@ Parse.Cloud.job("pushNotifications", async (request, response) => {
     // log: the ParseServer logger passed in the request
     // message: a function to update the status message of the job object
     console.log("NOTIFICATIONS START");
-    Parse.Cloud.useMasterKey();
 
-    // use to custom tweak whatever payload you wish to send
+    // Send to Android devices
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("deviceType", "android");
-
+    console.log("PLEASE!");
+    
+    // Set title and message
     var data = {
         "title": "Pitchr",
         "alert": "Check out your matches on Pitchr!"
     };
+    console.log("WHY NOT!");
 
     // Note that useMasterKey is necessary for Push notifications to succeed.
     return Parse.Push.send({
