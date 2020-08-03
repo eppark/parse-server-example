@@ -563,32 +563,24 @@ Parse.Cloud.define("findMatch2ForUser", async (request) => {
 
 
 //PUSH NOTIFICATIONS
-Parse.Cloud.define('pushChannelTest', function (request, response) {
+Parse.Cloud.define('pushMessage', async (request) => {
     // request has 2 parameters: params passed by the client and the authorized user
     var params = request.params;
-    var user = request.user;
-
-    // extract out the channel to send
-    var action = params.action;
-    var message = params.message;
-    var customData = params.customData;
 
     // use to custom tweak whatever payload you wish to send
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.equalTo("deviceType", "android");
+    pushQuery.equalTo("channels", "default");
 
-    var payload = {
-        "data": {
-            "alert": message,
-            "action": action,
-            "customdata": customData
-        }
+    var data = {
+        "title": params.title,
+        "alert": params.message
     };
 
     // Note that useMasterKey is necessary for Push notifications to succeed.
-
     Parse.Push.send({
-        where: pushQuery, // for sending to a specific channel                                                                                                                                 data: payload,
+        where: pushQuery,
+        data: data
     }, {
         success: function () {
             console.log("#### PUSH OK");
@@ -598,6 +590,41 @@ Parse.Cloud.define('pushChannelTest', function (request, response) {
         },
         useMasterKey: true
     });
+});
 
-    return true;
+
+// PUSH NOTIFICATIONS
+// This job sends users push notifications accordingly
+Parse.Cloud.job("pushNotifications", async (request, response) => {
+    // params: passed in the job call
+    // headers: from the request that triggered the job
+    // log: the ParseServer logger passed in the request
+    // message: a function to update the status message of the job object
+    console.log("NOTIFICATIONS START");
+    Parse.Cloud.useMasterKey();
+
+    // use to custom tweak whatever payload you wish to send
+    var pushQuery = new Parse.Query(Parse.Installation);
+    pushQuery.equalTo("deviceType", "android");
+    pushQuery.equalTo("channels", "default");
+
+    var data = {
+        "title": "Pitchr",
+        "alert": "Check out your matches on Pitchr!"
+    };
+
+    // Note that useMasterKey is necessary for Push notifications to succeed.
+    Parse.Push.send({
+        where: pushQuery,
+        data: data
+    }, {
+        success: function () {
+            console.log("#### PUSH OK");
+        },
+        error: function (error) {
+            console.log("#### PUSH ERROR" + error.message);
+        },
+        useMasterKey: true
+    });
+    return ("Successfully sent notifications.");
 });
