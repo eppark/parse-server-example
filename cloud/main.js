@@ -604,16 +604,3 @@ Parse.Cloud.define('pushChannelTest', function (request, response) {
 
     response.success('success');
 });
-
-Parse.Push.send({
-    where: pushQuery, // for sending to a specific channel
-    data: payload,
-}, {
-    success: function () {
-        console.log("#### PUSH OK");
-    },
-    error: function (error) {
-        console.log("#### PUSH ERROR" + error.message);
-    },
-    useMasterKey: true
-});
