@@ -599,5 +599,5 @@ Parse.Cloud.define('pushChannelTest', function (request, response) {
         useMasterKey: true
     });
 
-    response.success('success');
+    return true;
 });
