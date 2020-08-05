@@ -72,11 +72,8 @@ Parse.Cloud.job("matchJob", async (request, response) => {
     var matchquery = new Parse.Query(Match);
     matchquery.find().then((matches) => {
         console.log("MATCH SEARCH SUCCESS");
-        for (let a = 0; a < matches.length; a++) {
-            matches[a].destroy().then(destroyed => {
-                console.log("Successfully destroyed object" + JSON.stringify(destroyed));
-            });
-        }
+        // Delete all matches
+        Parse.Object.destroyAll(matches);
 
         // Query all users
         getUsers().then(
@@ -315,11 +312,8 @@ Parse.Cloud.job("match2Job", async (request, response) => {
     var matchquery = new Parse.Query(Match2);
     matchquery.find().then((matches) => {
         console.log("MATCH2 SEARCH SUCCESS");
-        for (let a = 0; a < matches.length; a++) {
-            matches[a].destroy().then(destroyed => {
-                console.log("Successfully destroyed object" + JSON.stringify(destroyed));
-            });
-        }
+        // Delete all previous matches
+        Parse.Object.destroyAll(matches);
 
         // Query all users
         getUsers().then(
@@ -559,4 +553,68 @@ Parse.Cloud.define("findMatch2ForUser", async (request) => {
         );
     });
     return true;
+});
+
+
+//PUSH NOTIFICATIONS
+Parse.Cloud.define('pushMessage', async (request) => {
+    // use to custom tweak whatever payload you wish to send
+    var pushQuery = new Parse.Query(Parse.Installation);
+    pushQuery.equalTo("deviceType", "android");
+    pushQuery.equalTo("channels", request.params.username);
+
+    var data = {
+        "title": request.params.title,
+        "alert": request.params.message
+    };
+
+    // Note that useMasterKey is necessary for Push notifications to succeed.
+    return Parse.Push.send({
+        where: pushQuery,
+        data: data
+    }, {
+        success: function () {
+            console.log("#### PUSH OK");
+        },
+        error: function (error) {
+            console.log("#### PUSH ERROR" + error.message);
+        },
+        useMasterKey: true
+    });
+});
+
+
+// PUSH NOTIFICATIONS
+// This job sends users push notifications accordingly
+Parse.Cloud.job("pushNotifications", async (request, response) => {
+    // params: passed in the job call
+    // headers: from the request that triggered the job
+    // log: the ParseServer logger passed in the request
+    // message: a function to update the status message of the job object
+    console.log("NOTIFICATIONS START");
+    Parse.Cloud.useMasterKey();
+
+    // use to custom tweak whatever payload you wish to send
+    var pushQuery = new Parse.Query(Parse.Installation);
+    pushQuery.equalTo("deviceType", "android");
+    pushQuery.equalTo("channels", "default");
+
+    var data = {
+        "title": "Pitchr",
+        "alert": "Check out your matches on Pitchr!"
+    };
+
+    // Note that useMasterKey is necessary for Push notifications to succeed.
+    return Parse.Push.send({
+        where: pushQuery,
+        data: data
+    }, {
+        success: function () {
+            console.log("#### PUSH OK");
+        },
+        error: function (error) {
+            console.log("#### PUSH ERROR" + error.message);
+        },
+        useMasterKey: true
+    });
 });
